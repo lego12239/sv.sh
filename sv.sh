@@ -362,6 +362,9 @@ if [[ -z "$__SV_I_AM_DAEMON__" ]]; then
 		fi
 		SV_PRG="$SV_PRG_"
 	fi
+	if [ ! -x "$SV_PRG" ]; then
+		err_exit "Can't find program: '$SV_PRG'"
+	fi
 	shift
 
 	exec 3>&1
