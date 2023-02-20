@@ -356,7 +356,7 @@ if [[ -z "$__SV_I_AM_DAEMON__" ]]; then
 	if echo "$SV_PRG" | grep '^\./\|^\.\./' >/dev/null 2>&1 ; then
 		SV_PRG="$PWD/$SV_PRG"
 	elif ! echo "$SV_PRG" | grep '^/' >/dev/null 2>&1 ; then
-		SV_PRG_=`which "$SV_PRG"`
+		SV_PRG_=`which "$SV_PRG" 2>/dev/null`
 		if [ -z "$SV_PRG_" ]; then
 			err_exit "Can't find program: '$SV_PRG'"
 		fi
