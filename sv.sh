@@ -203,6 +203,9 @@ send_req()
 	request="$@"
 	req_waittime=$REQ_WAITTIME_MAX
 	echo $request >&${PRGPROC_IN}
+	if [ $? -ne 0 ]; then
+		req_waittime=0
+	fi
 }
 
 check_jobs()
