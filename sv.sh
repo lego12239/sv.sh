@@ -340,8 +340,14 @@ if [[ -z "$__SV_I_AM_DAEMON__" ]]; then
 		echo PROGRAM must be specified! >&2
 		exit 1
 	fi
-	if ! echo $SV_PRG | grep '^/' >/dev/null 2>&1 ; then
+	if echo $SV_PRG | grep '^\./\|^\.\./' >/dev/null 2>&1 ; then
 		SV_PRG=$PWD/$SV_PRG
+	elif ! echo $SV_PRG | grep '^/' >/dev/null 2>&1 ; then
+		SV_PRG_=`which $SV_PRG`
+		if [ -z "$SV_PRG_" ]; then
+			err_out "Can't find program: '$SV_PRG'"
+		fi
+		SV_PRG=$SV_PRG_
 	fi
 	shift
 
