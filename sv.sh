@@ -236,6 +236,12 @@ show_usage()
 	echo "  -l,--log-path=PATH  set path for log files"
 	echo "  -f,--foreground     do not daemonize"
 	echo "  -d,--debug          show debug info"
+	echo "  -v,--version        show version"
+}
+
+show_version()
+{
+	echo "Version 0.9"
 }
 
 
@@ -296,6 +302,10 @@ fi
 case $opt_name in
 	-h|--help)
 		show_usage
+		exit
+		;;
+	-v|--version)
+		show_version
 		exit
 		;;
 	-l|--log-path)
