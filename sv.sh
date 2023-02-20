@@ -9,7 +9,7 @@ SV_LOG_PATH="$SV_LOG_PATH"
 SV_IS_FOREGROUND=$SV_IS_FOREGROUND
 SV_FIFO_PATH="$SV_FIFO_PATH"
 SV_CTL_FNAME="$SV_CTL_FNAME"
-SV_PRG=$SV_PRG
+SV_PRG="$SV_PRG"
 
 REQ_WAITTIME_MAX=20
 WAIT_TIME_TO_STOP=10
@@ -139,7 +139,7 @@ run_prg()
 #	trap - SIGINT
 #	trap - SIGQUIT
 #	trap - SIGHUP
-	coproc { trap - SIGTERM SIGINT SIGQUIT SIGHUP; exec $@; } 2>&6 3>&- 4>&- 5>&- 6>&-
+	coproc { trap - SIGTERM SIGINT SIGQUIT SIGHUP; exec "$@"; } 2>&6 3>&- 4>&- 5>&- 6>&-
 	PRGPROC_PID=$!
 #	trap hdl_sigterm SIGTERM
 #	trap hdl_sigint SIGINT
@@ -335,19 +335,19 @@ if [[ -z "$__SV_I_AM_DAEMON__" ]]; then
 
 	SV_CTL_FNAME="$SV_FIFO_PATH/sv"
 
-	SV_PRG=$1
-	if [ -z $SV_PRG ]; then
+	SV_PRG="$1"
+	if [ -z "$SV_PRG" ]; then
 		echo PROGRAM must be specified! >&2
 		exit 1
 	fi
-	if echo $SV_PRG | grep '^\./\|^\.\./' >/dev/null 2>&1 ; then
-		SV_PRG=$PWD/$SV_PRG
-	elif ! echo $SV_PRG | grep '^/' >/dev/null 2>&1 ; then
-		SV_PRG_=`which $SV_PRG`
+	if echo "$SV_PRG" | grep '^\./\|^\.\./' >/dev/null 2>&1 ; then
+		SV_PRG="$PWD/$SV_PRG"
+	elif ! echo "$SV_PRG" | grep '^/' >/dev/null 2>&1 ; then
+		SV_PRG_=`which "$SV_PRG"`
 		if [ -z "$SV_PRG_" ]; then
 			err_out "Can't find program: '$SV_PRG'"
 		fi
-		SV_PRG=$SV_PRG_
+		SV_PRG="$SV_PRG_"
 	fi
 	shift
 
@@ -378,7 +378,7 @@ trap "" SIGQUIT
 trap "" SIGHUP
 
 log_open
-run_prg $SV_PRG "$@"
+run_prg "$SV_PRG" "$@"
 
 trap hdl_sigterm SIGTERM
 trap hdl_sigint SIGINT
@@ -461,7 +461,7 @@ while [[ "$running" ]]; do
 		if [[ $request == "SIGTERM" ]]; then
 			request=
 		fi
-		[[ $request != "exit" ]] && run_prg $SV_PRG "$@"
+		[[ $request != "exit" ]] && run_prg "$SV_PRG" "$@"
 	fi
 
 	# We need to wait some time for a reply to a sent request.
