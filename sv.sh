@@ -80,20 +80,20 @@ log_reopen()
 log_proc()
 {
 	local TS FIFO_PATH LOG_PATH CURDAY LOG_POSTFIX
-	FIFO_PATH=$1
-	LOG_PATH=$2
+	FIFO_PATH="$1"
+	LOG_PATH="$2"
 
 #	exec ${PRGPROC_IN}>&- ${PRGPROC_OUT}>&-
 	# Redirect descriptors to tty or /dev/null if LOG_PATH is empty
 	if [[ -z "$LOG_PATH" ]]; then
 		exec >&3 2>&1 5>&1 7>&1
 	fi
-	exec <$FIFO_PATH/sv-log
-	exec 3<$FIFO_PATH/sv-errlog
-	exec 4<$FIFO_PATH/sv-app-log
-	exec 6<$FIFO_PATH/sv-app-errlog
+	exec <"$FIFO_PATH/sv-log"
+	exec 3<"$FIFO_PATH/sv-errlog"
+	exec 4<"$FIFO_PATH/sv-app-log"
+	exec 6<"$FIFO_PATH/sv-app-errlog"
 
-	echo "_LOGPROC_OK_" >$FIFO_PATH/sv
+	echo "_LOGPROC_OK_" >"$FIFO_PATH/sv"
 #	echo "`date +'%F %T'` INFO SV: Started LOGPROC."
 	LOG_POSTFIX=
 	while true; do
@@ -102,10 +102,10 @@ log_proc()
 		if [[ $CURDAY != "$LOG_POSTFIX" ]]; then
 			LOG_POSTFIX=$CURDAY
 			if [[ "$LOG_PATH" ]]; then
-				exec >>$LOG_PATH/sv.log-$LOG_POSTFIX
-				exec 2>>$LOG_PATH/sv.errlog-$LOG_POSTFIX
-				exec 5>>$LOG_PATH/sv.app.log-$LOG_POSTFIX
-				exec 7>>$LOG_PATH/sv.app.errlog-$LOG_POSTFIX
+				exec >>"$LOG_PATH/sv.log-$LOG_POSTFIX"
+				exec 2>>"$LOG_PATH/sv.errlog-$LOG_POSTFIX"
+				exec 5>>"$LOG_PATH/sv.app.log-$LOG_POSTFIX"
+				exec 7>>"$LOG_PATH/sv.app.errlog-$LOG_POSTFIX"
 			fi
 		fi
 		while read -t0 line; do
