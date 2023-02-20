@@ -3,12 +3,12 @@
 
 # Default values for variables.
 # Try to get them from an environment(for --DAEMONIZE).
-I_AM_DAEMON=
-debug=$debug
-log_path=$log_path
-is_foreground=$is_foreground
-FIFO_PATH=$FIFO_PATH
-CTL_FNAME=$CTL_FNAME
+__SV_I_AM_DAEMON__=
+SV_DEBUG=$SV_DEBUG
+SV_LOG_PATH="$SV_LOG_PATH"
+SV_IS_FOREGROUND=$SV_IS_FOREGROUND
+SV_FIFO_PATH="$SV_FIFO_PATH"
+SV_CTL_FNAME="$SV_CTL_FNAME"
 SV_PRG=$SV_PRG
 
 REQ_WAITTIME_MAX=20
@@ -16,7 +16,7 @@ WAIT_TIME_TO_STOP=10
 
 dbg_out()
 {
-	if [[ -z $debug ]]; then
+	if [[ -z $SV_DEBUG ]]; then
 		return
 	fi
 	echo "DBG: $@"
@@ -43,8 +43,8 @@ err_exit()
 
 log_open()
 {
-	if [[ -z $is_foreground ]]; then
-		if [[ -z $log_path ]]; then
+	if [[ -z $SV_IS_FOREGROUND ]]; then
+		if [[ -z "$SV_LOG_PATH" ]]; then
 			exec >/dev/null
 			exec 2>/dev/null
 			exec 5>/dev/null
@@ -54,26 +54,26 @@ log_open()
 		fi
 	fi
 
-	rm -f $FIFO_PATH/sv-log $FIFO_PATH/sv-errlog
-	rm -f $FIFO_PATH/sv-app-log $FIFO_PATH/sv-app-errlog
-	mkfifo $FIFO_PATH/sv-log || err_exit "Can't create FIFO $FIFO_PATH/sv-log"
-	mkfifo $FIFO_PATH/sv-errlog || err_exit "Can't create FIFO $FIFO_PATH/sv-errlog"
-	mkfifo $FIFO_PATH/sv-app-log || err_exit "Can't create FIFO $FIFO_PATH/sv-app-log"
-	mkfifo $FIFO_PATH/sv-app-errlog ||
-	  err_exit "Can't create FIFO $FIFO_PATH/sv-app-errlog"
+	rm -f "$SV_FIFO_PATH/sv-log" "$SV_FIFO_PATH/sv-errlog"
+	rm -f "$SV_FIFO_PATH/sv-app-log" "$SV_FIFO_PATH/sv-app-errlog"
+	mkfifo "$SV_FIFO_PATH/sv-log" || err_exit "Can't create FIFO $SV_FIFO_PATH/sv-log"
+	mkfifo "$SV_FIFO_PATH/sv-errlog" || err_exit "Can't create FIFO $SV_FIFO_PATH/sv-errlog"
+	mkfifo "$SV_FIFO_PATH/sv-app-log" || err_exit "Can't create FIFO $SV_FIFO_PATH/sv-app-log"
+	mkfifo "$SV_FIFO_PATH/sv-app-errlog" ||
+	  err_exit "Can't create FIFO $SV_FIFO_PATH/sv-app-errlog"
 
 	log_reopen
 
-	exec >$FIFO_PATH/sv-log
-	exec 2>$FIFO_PATH/sv-errlog
-	exec 5>$FIFO_PATH/sv-app-log
-	exec 6>$FIFO_PATH/sv-app-errlog
+	exec >"$SV_FIFO_PATH/sv-log"
+	exec 2>"$SV_FIFO_PATH/sv-errlog"
+	exec 5>"$SV_FIFO_PATH/sv-app-log"
+	exec 6>"$SV_FIFO_PATH/sv-app-errlog"
 }
 
 log_reopen()
 {
 #	echo "Starting LOGPROC ." >&3
-	log_proc $FIFO_PATH $log_path &
+	log_proc "$SV_FIFO_PATH" "$SV_LOG_PATH" &
 	LOGPROC_PID=$!
 }
 
@@ -152,16 +152,16 @@ run_prg()
 
 daemonize()
 {
-	if [[ $I_AM_DAEMON ]]; then
-		export -n log_path is_foreground debug FIFO_PATH CTL_FNAME SV_PRG
+	if [[ $__SV_I_AM_DAEMON__ ]]; then
+		export -n SV_LOG_PATH SV_IS_FOREGROUND SV_DEBUG SV_FIFO_PATH SV_CTL_FNAME SV_PRG
 		cd /
 		return
 	fi
-	if [[ $is_foreground ]]; then
+	if [[ $SV_IS_FOREGROUND ]]; then
 		return
 	fi
 
-	export log_path is_foreground debug FIFO_PATH CTL_FNAME SV_PRG
+	export SV_LOG_PATH SV_IS_FOREGROUND SV_DEBUG SV_FIFO_PATH SV_CTL_FNAME SV_PRG
 	setsid $0 --DAEMONIZE "$@" &
 	exit
 }
@@ -299,17 +299,17 @@ case $opt_name in
 		exit
 		;;
 	-l|--log-path)
-		log_path=$opt_arg
+		SV_LOG_PATH="$opt_arg"
 		shift; opt_list=
 		;;
 	-f|--foreground)
-		is_foreground=1
+		SV_IS_FOREGROUND=1
 		;;
 	-d|--debug)
-		debug=1
+		SV_DEBUG=1
 		;;
 	--DAEMONIZE)
-		I_AM_DAEMON=1
+		__SV_I_AM_DAEMON__=1
 		opt_exists=
 		;;
 	-*)
@@ -320,20 +320,20 @@ case $opt_name in
 esac
 done
 
-if [[ -z "$I_AM_DAEMON" ]]; then
-	if [[ $log_path ]]; then
-		if ! echo $log_path | grep '^/' >/dev/null 2>&1 ; then
-			log_path=$PWD/$log_path
+if [[ -z "$__SV_I_AM_DAEMON__" ]]; then
+	if [[ "$SV_LOG_PATH" ]]; then
+		if ! echo "$SV_LOG_PATH" | grep '^/' >/dev/null 2>&1 ; then
+			SV_LOG_PATH="$PWD/$SV_LOG_PATH"
 		fi
 	fi
 
-	FIFO_PATH=$1
-	if ! echo $FIFO_PATH | grep '^/' >/dev/null 2>&1 ; then
-		FIFO_PATH=$PWD/$FIFO_PATH
+	SV_FIFO_PATH="$1"
+	if ! echo "$SV_FIFO_PATH" | grep '^/' >/dev/null 2>&1 ; then
+		SV_FIFO_PATH="$PWD/$SV_FIFO_PATH"
 	fi
 	shift
 
-	CTL_FNAME=$FIFO_PATH/sv
+	SV_CTL_FNAME="$SV_FIFO_PATH/sv"
 
 	SV_PRG=$1
 	if [ -z $SV_PRG ]; then
@@ -347,10 +347,10 @@ if [[ -z "$I_AM_DAEMON" ]]; then
 
 	exec 3>&1
 
-	rm -f $CTL_FNAME
-	mkfifo $CTL_FNAME || err_exit "Can't create FIFO $CTL_FNAME"
-	echo _OK_ > $CTL_FNAME &
-	exec 4<$CTL_FNAME
+	rm -f "$SV_CTL_FNAME"
+	mkfifo "$SV_CTL_FNAME" || err_exit "Can't create FIFO $SV_CTL_FNAME"
+	echo _OK_ > "$SV_CTL_FNAME" &
+	exec 4<"$SV_CTL_FNAME"
 
 #	rm -f $FIFO_PATH/sv-appin $FIFO_PATH/sv-appout
 #	mkfifo $FIFO_PATH/sv-appin || err_exit "Can't create FIFO $FIFO_PATH/sv-appin"
@@ -383,7 +383,7 @@ trap hdl_sighup SIGHUP
 echo OK >&3
 exec 3>&-
 
-if [[ $debug ]]; then
+if [[ $SV_DEBUG ]]; then
 	echo "Started"
 	echo "Started" >&2
 	echo "Started" >&5
