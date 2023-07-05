@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) 2023 Oleg Nemanov <lego12239@yandex.ru>
-# Version 0.9
+# Version 0.10
 # SPDX-License-Identifier: BSD-2-Clause
 # Dependencies: sleep, date, rm, sed, setsid, head, tail, kill, logger, stat
 
@@ -157,7 +157,7 @@ show_usage()
 
 show_version()
 {
-	echo "Version 0.9"
+	echo "Version 0.10"
 }
 
 case "$1" in
