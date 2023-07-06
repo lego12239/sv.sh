@@ -19,10 +19,10 @@ sv.sh daemonize after start and run specified BINARY.
 If a child has terminated, then sv.sh run it again.
 
 TAG is used to name a pid file and log files or as syslog tag (if a logging
-to syslog is enabled).
+to syslog is enabled). TAG shouldn't start with "-" (dash).
 
-sv.sh can log to files or to syslog. If SV_SYSLOG is not empty, then
-sv.sh log to syslog. Otherwise, sv.sh log to files.
+sv.sh can log to stdout/stderr, to files or to syslog. If SV_SYSLOG is not
+empty, then sv.sh log to syslog. Otherwise, sv.sh log to files.
 
 If sv.sh log to files, it creates separate files for sv stdout and stderr
 and separate files for child stdout and stderr (4 files in total).
@@ -48,10 +48,12 @@ SV_RESTART_DELAY
     Default is 2s.
 SV_LOGPATH
     The directory for log files.
-    Default is /var/log.
+	If unset, then log to stdout/stderr.
+    Default is "" (unset).
 SV_PIDPATH
     The directory for pid file with our pid.
-    Default is /var/run.
+	If unset, then do not create a pid file.
+    Default is "" (unset).
 SV_LOGFILES_CNT
     A maximum count of sv log files.
     Default is 30.
