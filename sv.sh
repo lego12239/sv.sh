@@ -190,6 +190,10 @@ case "$1" in
 	;;
 esac
 
+if [[ ! -e "$SV_PIDPATH" ]]; then
+	mkdir -p "$SV_PIDPATH" ||
+	  err_exit "Can't create pid directory"
+fi
 echo $$ > "$SV_PIDPATH/$PRGTAG.pid"
 LOG_POSTFIX=`mk_log_postfix`
 cd /
