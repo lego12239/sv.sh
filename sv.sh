@@ -6,10 +6,9 @@
 
 set -u
 
-# Delay in seconds between child restarts.
+# Delay between child restarts.
 SV_RESTART_DELAY=${RESTART_DELAY:-2s}
 # Log to files is actived only if SV_SYSLOG is empty.
-# This is not recommended due to missing of a file rotation.
 SV_LOGPATH=${SV_LOGPATH:-/var/log/}
 # Directory for pid file with our pid.
 SV_PIDPATH=${SV_PIDPATH:-/var/run/}
