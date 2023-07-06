@@ -184,7 +184,7 @@ show_usage()
 {
 	echo "Usage: `basename $0` TAG BIN_FULLPATH BIN_ARG1 ..."
 	echo "  Where:"
-	echo "    TAG           - prefix for log and pid files (no - at start)"
+	echo "    TAG           - prefix for log and pid files (no '-' at start)"
 	echo "    BIN_FULLPATH  - a full path of binary to supervise"
 	echo "    BIN_ARG1, etc - a cmd args for binary"
 }
