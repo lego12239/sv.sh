@@ -9,9 +9,9 @@ set -u
 # Delay between child restarts.
 SV_RESTART_DELAY=${RESTART_DELAY:-2s}
 # Log to files is actived only if SV_SYSLOG is empty.
-SV_LOGPATH=${SV_LOGPATH:-/var/log/}
+SV_LOGPATH=${SV_LOGPATH:-}
 # Directory for pid file with our pid.
-SV_PIDPATH=${SV_PIDPATH:-/var/run/}
+SV_PIDPATH=${SV_PIDPATH:-}
 # A maximum count of sv log files.
 SV_LOGFILES_CNT=${SV_LOGFILES_CNT:-30}
 # Maximum size(in bytes) of child log file for log reopening.
@@ -65,7 +65,9 @@ get_abspath()
 
 _hdl_exit()
 {
-	rm "$SV_PIDPATH/$PRGTAG.pid"
+	if [[ "$SV_PIDPATH" ]]; then
+		rm "$SV_PIDPATH/$PRGTAG.pid"
+	fi
 	kill -TERM -$$
 }
 
@@ -143,6 +145,36 @@ rm_old_logs()
 	done
 }
 
+reopen_logs()
+{
+	local LOG_POSTFIX LOG_SIZE RESTART
+
+	if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
+		return
+	fi
+
+	RESTART=
+	LOG_POSTFIX=`mk_log_postfix`
+	exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
+	rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.log" $SV_LOGFILES_CNT
+	rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.err.log" $SV_LOGFILES_CNT
+	LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.log"-* | tail -n1))
+	if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
+		RESTART=1
+	else
+		LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.err.log"-* | tail -n1))
+		if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
+			RESTART=1
+		fi
+	fi
+	if [[ "$RESTART" ]]; then
+		info_out "Stop a child for log reopening..."
+		child_kill
+		rm_old_logs "$SV_LOGPATH/$PRGTAG.log" $SV_PRG_LOGFILE_MAXCNT
+		rm_old_logs "$SV_LOGPATH/$PRGTAG.err.log" $SV_PRG_LOGFILE_MAXCNT
+	fi
+}
+
 mk_log_postfix()
 {
 	echo `date +'%Y%m%d-%T'`
@@ -190,21 +222,25 @@ case "$1" in
 	;;
 esac
 
-if [[ ! -e "$SV_PIDPATH" ]]; then
+if [[ "$SV_PIDPATH" ]] && [[ ! -e "$SV_PIDPATH" ]]; then
 	mkdir -p "$SV_PIDPATH" ||
 	  err_exit "Can't create pid directory"
 fi
-echo $$ > "$SV_PIDPATH/$PRGTAG.pid"
+if [[ "$SV_PIDPATH" ]]; then
+	echo $$ > "$SV_PIDPATH/$PRGTAG.pid"
+fi
 LOG_POSTFIX=`mk_log_postfix`
 cd /
 if [[ "$SV_SYSLOG" ]]; then
 	exec > >(logger -t "$PRGTAG") 2>&1
 else
-	if [[ ! -e "$SV_LOGPATH" ]]; then
-		mkdir -p "$SV_LOGPATH" ||
-		  err_exit "Can't create log directory"
+	if [[ "$SV_LOGPATH" ]]; then
+		if [[ ! -e "$SV_LOGPATH" ]]; then
+			mkdir -p "$SV_LOGPATH" ||
+			  err_exit "Can't create log directory"
+		fi
+		exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
 	fi
-	exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
 fi
 
 trap hdl_sigterm SIGTERM
@@ -218,7 +254,7 @@ RESTART=
 while [[ "$RUNNING" ]]; do
 	if ! is_child_running; then
 		info_out "Child is not running. Starting..."
-		if [[ "$SV_SYSLOG" ]]; then
+		if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
 			"$@" &
 		else
 			"$@" >>"$SV_LOGPATH/$PRGTAG.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.err.log-$LOG_POSTFIX" &
@@ -236,27 +272,8 @@ while [[ "$RUNNING" ]]; do
 		RESTART=
 		if [[ -z "$SV_SYSLOG" ]]; then
 			info_out "Reopen sv log files"
-			LOG_POSTFIX=`mk_log_postfix`
-			exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
-			rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.log" $SV_LOGFILES_CNT
-			rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.err.log" $SV_LOGFILES_CNT
-			LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.log"-* | tail -n1))
-			if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-				RESTART=2
-			else
-				LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.err.log"-* | tail -n1))
-				if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-					RESTART=2
-				fi
-			fi
-			if [[ "$RESTART" = "2" ]]; then
-				info_out "Stop a child for log reopening..."
-				child_kill
-				rm_old_logs "$SV_LOGPATH/$PRGTAG.log" $SV_PRG_LOGFILE_MAXCNT
-				rm_old_logs "$SV_LOGPATH/$PRGTAG.err.log" $SV_PRG_LOGFILE_MAXCNT
-			fi
+			reopen_logs
 		fi
-		RESTART=
 	fi
 done
 
