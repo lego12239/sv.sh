@@ -48,11 +48,11 @@ SV_RESTART_DELAY
     Default is 2s.
 SV_LOGPATH
     The directory for log files.
-	If unset, then log to stdout/stderr.
+    If unset, then log to stdout/stderr.
     Default is "" (unset).
 SV_PIDPATH
     The directory for pid file with our pid.
-	If unset, then do not create a pid file.
+    If unset, then do not create a pid file.
     Default is "" (unset).
 SV_LOGFILES_CNT
     A maximum count of sv log files.
@@ -70,8 +70,8 @@ SV_SYSLOG
 SV_KILLSEQ
     A sequence of "SIGNAL/TIME_TO_WAIT" separated with / for child
     termination. There is no need to specify KILL, because SIGKILL is
-	sent to child in any case if it isn't terminated after specified kill
-	sequence.
+    sent to child in any case if it isn't terminated after specified kill
+    sequence.
     Default is "TERM/2s/TERM/4s".
 
 
