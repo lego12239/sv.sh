@@ -15,7 +15,7 @@ SV_PIDPATH=${SV_PIDPATH:-/var/run/}
 # A maximum count of sv log files.
 SV_LOGFILES_CNT=${SV_LOGFILES_CNT:-30}
 # Maximum size in bytes for log reopening.
-SV_PRG_LOGFILE_MAXSIZE=${SV_PRG_LOGFILE_MAXSIZE:-1000}
+SV_PRG_LOGFILE_MAXSIZE=${SV_PRG_LOGFILE_MAXSIZE:-10000000}
 # A maximum count of child log files.
 SV_PRG_LOGFILE_MAXCNT=${SV_PRG_LOGFILE_MAXCNT:-3}
 # The value is a syslog priority (facility.level). See logger(1).
