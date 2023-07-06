@@ -11,10 +11,11 @@ SV_RESTART_DELAY=${RESTART_DELAY:-2s}
 # Log to files is actived only if SV_SYSLOG is empty.
 # This is not recommended due to missing of a file rotation.
 SV_LOGPATH=${SV_LOGPATH:-/var/log/}
+# Directory for pid file with our pid.
 SV_PIDPATH=${SV_PIDPATH:-/var/run/}
 # A maximum count of sv log files.
 SV_LOGFILES_CNT=${SV_LOGFILES_CNT:-30}
-# Maximum size in bytes for log reopening.
+# Maximum size(in bytes) of child log file for log reopening.
 SV_PRG_LOGFILE_MAXSIZE=${SV_PRG_LOGFILE_MAXSIZE:-10000000}
 # A maximum count of child log files.
 SV_PRG_LOGFILE_MAXCNT=${SV_PRG_LOGFILE_MAXCNT:-3}
@@ -22,6 +23,8 @@ SV_PRG_LOGFILE_MAXCNT=${SV_PRG_LOGFILE_MAXCNT:-3}
 # If value is not empty, then loggin to files is disabled.
 # E.g. "user.notice".
 SV_SYSLOG=${SV_SYSLOG:-}
+# How we terminate a child.
+# A sequence of "SIGNAL/TIME_TO_WAIT" separated with /.
 SV_KILLSEQ=${SV_KILLSEQ:-TERM/2s/TERM/4s}
 
 info_out()
