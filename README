@@ -1,0 +1,85 @@
+Overview
+========
+
+sv.sh is a tiny supervisor written in bash.
+
+
+SYNOPSIS
+========
+
+./sv.sh TAG BINARY_FULLPATH [BINARY_ARGS]
+./sv.sh -h|--help
+./sv.sh -v|--version
+
+
+DESCRIPTION
+===========
+
+sv.sh daemonize after start and run specified BINARY.
+If a child has terminated, then sv.sh run it again.
+
+TAG is used to name a pid file and log files or as syslog tag (if a logging
+to syslog is enabled).
+
+sv.sh can log to files or to syslog. If SV_SYSLOG is not empty, then
+sv.sh log to syslog. Otherwise, sv.sh log to files.
+
+If sv.sh log to files, it creates separate files for sv stdout and stderr
+and separate files for child stdout and stderr (4 files in total).
+if sv.sh is got SIGHUP, it reopen it log and check a child log size. If a
+child log is bigger than SV_PRG_LOGFILE_MAXSIZE bytes, then it stop a child
+and run it again with redirection to new log files.
+
+If sv.sh log to syslog, it logs its and child stdout/stderr to a specified
+syslog priority. Logging to syslog is done via logger utility, which run in
+the background.
+
+child termination SV_KILLSEQ.
+
+
+CONFIGURATION
+=============
+
+sv.sh has some parameters that can be changed with help of environment
+variables.
+
+SV_RESTART_DELAY
+    The delay (with suffix s, m, etc) between child restarts.
+    Default is 2s.
+SV_LOGPATH
+    The directory for log files.
+    Default is /var/log.
+SV_PIDPATH
+    The directory for pid file with our pid.
+    Default is /var/run.
+SV_LOGFILES_CNT
+    A maximum count of sv log files.
+    Default is 30.
+SV_PRG_LOGFILE_MAXSIZE
+    Maximum size(in bytes) of child current log file for log reopening.
+    Default is 10000000.
+SV_PRG_LOGFILE_MAXCNT
+    A maximum count of child log files.
+    Default is 3.
+SV_SYSLOG
+    The value is a syslog priority (facility.level). See logger(1) for
+    syntax (option -p).
+    Default is "" (none).
+SV_KILLSEQ
+    A sequence of "SIGNAL/TIME_TO_WAIT" separated with / for child
+    termination. There is no need to specify KILL, because SIGKILL is
+	sent to child in any case if it isn't terminated after specified kill
+	sequence.
+    Default is "TERM/2s/TERM/4s".
+
+
+EXAMPLE
+=======
+
+A script to start some service can be like this:
+
+#!/bin/bash
+# Supervisor settings
+export SV_PIDPATH=/opt/myprog/run
+export SV_SYSLOG=user.notice
+./sv.sh prg1 /opt/myprog/prog -t -d
