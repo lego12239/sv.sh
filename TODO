@@ -1,3 +1,4 @@
 - add README
 - add man page
 - add restart settings(intensity and period settings - if we exceed this, sv exits)
+- some parameter to disable log at all?
