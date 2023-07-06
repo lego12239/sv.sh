@@ -216,7 +216,7 @@ while [[ "$RUNNING" ]]; do
 		PRGPID=$!
 		info_out "Child is started: pid=$PRGPID"
 	fi
-	wait
+	wait %1
 	info_out "Got some signal"
 	if [[ "$RUNNING" ]]; then
 		sleep $SV_RESTART_DELAY
