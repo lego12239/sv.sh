@@ -200,6 +200,10 @@ cd /
 if [[ "$SV_SYSLOG" ]]; then
 	exec > >(logger -t "$PRGTAG") 2>&1
 else
+	if [[ ! -e "$SV_LOGPATH" ]]; then
+		mkdir -p "$SV_LOGPATH" ||
+		  err_exit "Can't create log directory"
+	fi
 	exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
 fi
 
