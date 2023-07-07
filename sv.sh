@@ -243,6 +243,8 @@ else
 	fi
 fi
 
+info_out "Starting supervisor"
+
 trap hdl_sigterm SIGTERM
 trap hdl_sigint SIGINT
 trap hdl_sigquit SIGQUIT
@@ -277,5 +279,6 @@ while [[ "$RUNNING" ]]; do
 	fi
 done
 
-info_out "Exiting..."
+info_out "Stopping a child..."
 child_kill
+info_out "Stopping supervisor"
