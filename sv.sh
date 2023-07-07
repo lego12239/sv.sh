@@ -29,7 +29,7 @@ SV_KILLSEQ=${SV_KILLSEQ:-TERM/2s/TERM/4s}
 info_out()
 {
 	if [[ "$SV_SYSLOG" ]]; then
-		echo "$@"
+		echo "SV: $@"
 	else
 		echo "`date +'%F %T'` $@"
 	fi
@@ -38,7 +38,7 @@ info_out()
 err_out()
 {
 	if [[ "$SV_SYSLOG" ]]; then
-		echo "$@" >&2
+		echo "SV: $@" >&2
 	else
 		echo "`date +'%F %T'` $@" >&2
 	fi
