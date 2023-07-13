@@ -50,6 +50,18 @@ err_exit()
 	exit 1
 }
 
+is_true()
+{
+	case "$1" in
+		[Yy][Ee][Ss]|[Tt][Rr][Uu][Ee]|[Oo][Nn]|1)
+			return 0
+			;;
+		*)
+			return 1
+			;;
+	esac
+}
+
 get_abspath()
 {
 	local p
