@@ -25,8 +25,8 @@ SV_SYSLOG=${SV_SYSLOG:-}
 # How we terminate a child.
 # A sequence of "SIGNAL/TIME_TO_WAIT" separated with /.
 SV_KILLSEQ=${SV_KILLSEQ:-TERM/2s/TERM/4s}
-# Set to "yes" to not change dir to / after startup.
-SV_NOCHDIR=${SV_NOCHDIR:-}
+# Set to "no" to not change dir to / after startup.
+SV_CHDIR=${SV_CHDIR:-yes}
 
 info_out()
 {
@@ -244,7 +244,7 @@ if [[ "$SV_PIDPATH" ]]; then
 	echo $$ > "$SV_PIDPATH/$PRGTAG.pid"
 fi
 LOG_POSTFIX=`mk_log_postfix`
-if ! is_true "$SV_NOCHDIR"; then
+if is_true "$SV_CHDIR"; then
 	cd /
 fi
 if [[ "$SV_SYSLOG" ]]; then
