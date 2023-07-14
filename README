@@ -7,7 +7,7 @@ sv.sh is a tiny supervisor written in bash.
 SYNOPSIS
 ========
 
-./sv.sh TAG BINARY_FULLPATH [BINARY_ARGS]
+echo SPEC | ./sv.sh TAG
 ./sv.sh -h|--help
 ./sv.sh -v|--version
 
@@ -15,8 +15,8 @@ SYNOPSIS
 DESCRIPTION
 ===========
 
-sv.sh daemonize after start and run specified BINARY.
-If a child has terminated, then sv.sh run it again.
+sv.sh daemonize after start and run specified commands in SPEC.
+If any child has terminated, then sv.sh run it again.
 
 TAG is used to name a pid file and log files or as syslog tag (if a logging
 to syslog is enabled). TAG shouldn't start with "-" (dash).
@@ -35,6 +35,33 @@ syslog priority. Logging to syslog is done via logger utility, which run in
 the background.
 
 child termination SV_KILLSEQ.
+
+
+SPEC
+====
+
+SPEC consist of command specs. Each command spec is a one line with the next
+syntax:
+
+ACT PRMS
+
+Where:
+ ACT
+   Action. wait or run.
+   wait - delay SPEC execution for a specified time(with units as a postfix;
+          i.e. 2s, 10s, etc)
+   run  - run a specified program
+ PRMS
+   action parameters.
+
+ wait action parameters: TIME. TIME is a number with a time unit. I.e. 10s, 4s, etc.
+ run action parameters: TAG RS BIN [BIN_PRMS].
+   TAG is used for log messages.
+   RS is a restart strategy. one or all. one - if this program is terminated, then
+   restart it. all - if this program tis terminated, then restart all programs from
+   SPEC.
+   BIN is a binary to start.
+   BIN_PRMS is a command line parameters for specified binary.
 
 
 CONFIGURATION
@@ -73,6 +100,9 @@ SV_KILLSEQ
     sent to child in any case if it isn't terminated after specified kill
     sequence.
     Default is "TERM/2s/TERM/4s".
+SV_CHDIR
+    Set to "no" to not change dir to / after startup.
+    Default is "yes".
 
 
 EXAMPLE
@@ -84,4 +114,5 @@ A script to start some service can be like this:
 # Supervisor settings
 export SV_PIDPATH=/opt/myprog/run
 export SV_SYSLOG=user.notice
-./sv.sh prg1 /opt/myprog/prog -t -d
+echo "run prg1 one sleep 10s
+run prg2 all sleep 35s" | ./sv.sh env1
