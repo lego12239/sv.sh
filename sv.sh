@@ -28,6 +28,11 @@ SV_KILLSEQ=${SV_KILLSEQ:-TERM/2s/TERM/4s}
 # Set to "no" to not change dir to / after startup.
 SV_CHDIR=${SV_CHDIR:-yes}
 
+
+NL="
+"
+
+
 info_out()
 {
 	if [[ "$SV_SYSLOG" ]]; then
@@ -80,7 +85,7 @@ get_abspath()
 _hdl_exit()
 {
 	if [[ "$SV_PIDPATH" ]]; then
-		rm "$SV_PIDPATH/$PRGTAG.pid"
+		rm "$SV_PIDPATH/$SVTAG.pid"
 	fi
 	kill -TERM -$$
 }
@@ -112,41 +117,219 @@ hdl_sighup()
 	RESTART=1
 }
 
-is_child_running()
+save_cmds()
 {
-	local ret
+	local act rs tag prg opts tags
 
-	ret=`jobs  | sed -nre '/^[^[:space:]]+[[:space:]]+(Running|Stopped)[[:space:]]/ p;'`
-	[[ "$ret" ]] && return 0
-	return 1
+	export SV_CMDS=""
+	tags=" "
+	while read act tag rs prg opts; do
+		case "$act" in
+		wait)
+			SV_CMDS="${SV_CMDS}$act $tag$NL"
+			;;
+		run)
+			if echo "$tags" | grep " $tag " >/dev/null 2>&1; then
+				err_exit "Child spec error: tag already used: '$tag'"
+			fi
+			tags="$tags$tag "
+			SV_CMDS="${SV_CMDS}$act $tag $rs `get_abspath $prg` $opts$NL"
+			;;
+		*)
+			err_exit "Child spec error: wrong action: '$act'"
+			;;
+		esac
+	done
 }
 
-child_kill()
+cspec_get()
 {
-	local SIG cnt kseq
+	local cmds cmd act tag
 
+	cmds="$SV_CMDS"
+	while [[ "$cmds" ]]; do
+		cmd="${cmds%%$NL*}"
+		cmds="${cmds#*$NL}"
+
+		act=${cmd%% *}
+		cmd=${cmd#* }
+		case "$act" in
+		run)
+			tag=${cmd%% *}
+			
+			if [[ "$tag" = "$1" ]]; then
+				echo $cmd
+				return
+			fi
+			;;
+		esac
+	done
+
+	err_exit "cspec_get() error: unknown command tag: '$1'"
+}
+
+childs_start()
+{
+	local ex_wait cmds cmd act tag cpids cpid is_run
+
+	cmds="$SV_CMDS"
+	if [[ -z "$CPIDS" ]]; then
+		ex_wait=
+	else
+		ex_wait=1
+	fi
+	while [[ "$cmds" ]]; do
+		cmd="${cmds%%$NL*}"
+		cmds="${cmds#*$NL}"
+
+		act=${cmd%% *}
+		cmd="${cmd#* }"
+		case "$act" in
+		wait)
+			[[ "$ex_wait" ]] && sleep $cmd
+			;;
+		run)
+			tag=${cmd%% *}
+			cmd="${cmd#* }"
+			
+			cpids="$CPIDS"
+			is_run=
+			while [[ "$cpids" ]]; do
+				cpid=${cpids%%$NL*}
+				cpids="${cpids#*$NL}"
+				if [[ "${cpid%% *}" = "$tag" ]]; then
+					is_run=1
+					break
+				fi
+			done
+
+			if [[ -z "$is_run" ]]; then
+				info_out "Child $tag is not running. Starting..."
+				# just remove restart strategy
+				cmd="${cmd#* }"
+				if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
+					$cmd &
+				else
+					$cmd >>"$SV_LOGPATH/$SVTAG.$tag.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$SVTAG.$tag.err.log-$LOG_POSTFIX" &
+				fi
+				CPIDS="${CPIDS}$tag $!$NL"
+				info_out "Child $tag is started: pid=$!"
+			fi
+			;;
+		*)
+			err_exit "Unknown action '$act'"
+			;;
+		esac
+	done
+}
+
+child_cleanup()
+{
+	local fpid cpids cpid tag cmd cpids_new is_killall
+
+	fpid=$1
+	is_killall=
+	cpids="$CPIDS"
+	cpids_new=""
+	while [[ "$cpids" ]]; do
+		cpid=${cpids%%$NL*}
+		cpids="${cpids#*$NL}"
+
+		tag=${cpid%% *}
+		cpid=${cpid#* }
+		if [[ "$cpid" = "$fpid" ]]; then
+			info_out "Child $tag is stopped"
+			cmd=`cspec_get $tag`
+			# remove a tag
+			cmd="${cmd#* }"
+			if [[ "${cmd%% *}" = "all" ]]; then
+				info_out "Child $tag restart strategy is 'all': stop other children"
+				is_killall=1
+			fi
+		else
+			cpids_new="${cpids_new}$tag $cpid$NL"
+		fi
+	done
+
+	CPIDS="$cpids_new"
+	if [[ "$is_killall" ]]; then
+		childs_kill "$CPIDS"
+		CPIDS=""
+	fi
+}
+
+# Do not forget to remove last "E" char from the result.
+cpids_cleanup()
+{
+	local childs child cpids cpid tag cmd cpids_new
+
+	childs=`jobs -l | sed -nre 's/^[^[:space:]]+[[:space:]]+([0-9]+)[[:space:]]+(Running|Stopped)[[:space:]].*$/\1/; T; p;'`
+	cpids="$1"
+	cpids_new=""
+	while [[ "$cpids" ]]; do
+		cpid=${cpids%%$NL*}
+		cpids="${cpids#*$NL}"
+
+		tag=${cpid%% *}
+		cpid=${cpid#* }
+		for child in $childs; do
+			if [[ "$child" = "$cpid" ]]; then
+				cpids_new="${cpids_new}$tag $cpid$NL"
+			fi
+		done
+	done
+
+	# Add E to save a last newline.
+	echo -n "${cpids_new}E"
+}
+
+childs_kill()
+{
+	local SIG cnt kseq cpids
+
+	cpids="$1"
 	kseq="$SV_KILLSEQ/"
-	while is_child_running && [[ "${kseq}" ]]; do
+	while [[ "$cpids" ]] && [[ "${kseq}" ]]; do
 		SIG=${kseq%%/*}
 		kseq=${kseq#*/}
-		info_out "Sending SIG$SIG to a child..."
-		kill -$SIG %1
+		childs_sendsig "$cpids" $SIG
 		sleep ${kseq%%/*}
+		cpids=`cpids_cleanup "$cpids"`
+		cpids=${cpids%E}
 		kseq=${kseq#*/}
 	done
-	if is_child_running; then
-		info_out "Child isn't terminated - sending SIGKILL to a child..."
-		kill -KILL %1
+	if [[ "$cpids" ]]; then
+		info_out "Children aren't terminated - sending SIGKILL to children..."
+		childs_sendsig "$cpids" KILL
 		cnt=""
-		while is_child_running && [[ $cnt != "..." ]]; do
+		while [[ "$cpids" ]] && [[ $cnt != "..." ]]; do
 			cnt="${cnt}."
 			sleep 2s
+			cpids=`cpids_cleanup "$cpids"`
+			cpids=${cpids%E}
 		done
 	fi
 
-	if is_child_running; then
+	if [[ "$cpids" ]]; then
 		err_exit "Child isn't terminated after SIGKILL - may be it waiting IO"
 	fi
+}
+
+childs_sendsig()
+{
+	local sig cpids cpid tag
+
+	cpids="$1"
+	sig=$2
+	while [[ "$cpids" ]]; do
+		cpid=${cpids%%$NL*}
+		cpids="${cpids#*$NL}"
+
+		tag=${cpid%% *}
+		cpid=${cpid#* }
+		info_out "Sending SIG$sig to a child $tag..."
+		kill -$sig $cpid
+	done
 }
 
 rm_old_logs()
@@ -159,34 +342,59 @@ rm_old_logs()
 	done
 }
 
-reopen_logs()
+reopen_childs_logs()
 {
-	local LOG_POSTFIX LOG_SIZE RESTART
+	local cpids cpid tag
 
 	if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
 		return
 	fi
 
-	RESTART=
 	LOG_POSTFIX=`mk_log_postfix`
-	exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
-	rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.log" $SV_LOGFILES_CNT
-	rm_old_logs "$SV_LOGPATH/$PRGTAG.sv.err.log" $SV_LOGFILES_CNT
-	LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.log"-* | tail -n1))
-	if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-		RESTART=1
+	exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$LOG_POSTFIX"
+	rm_old_logs "$SV_LOGPATH/${SVTAG}-sv.log" $SV_LOGFILES_CNT
+	rm_old_logs "$SV_LOGPATH/${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
+
+	cpids="$CPIDS"
+	while [[ "$cpids" ]]; do
+		cpid=${cpids%%$NL*}
+		cpids="${cpids#*$NL}"
+
+		tag=${cpid%% *}
+		cpid=${cpid#* }
+
+		if is_child_log_is_big $tag; then
+			# If any previous child has "any" restart
+			# strategy, then all children are already
+			# killed. Thus, $CPIDS is empty and we don't
+			# try to kill them.
+			if [[ "$CPIDS" ]]; then
+				info_out "Stop child $tag for log reopening..."
+				childs_kill "$tag $cpid$NL"
+				child_cleanup $cpid
+			fi
+		fi
+		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.log" $SV_PRG_LOGFILE_MAXCNT
+		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.err.log" $SV_PRG_LOGFILE_MAXCNT
+	done
+}
+
+is_child_log_is_big()
+{
+	local log_size ret
+
+	ret=1
+	log_size=$(stat -c%s $(ls -1 "$SV_LOGPATH/$SVTAG.$1.log"-* | tail -n1))
+	if [[ "$log_size" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
+		ret=0
 	else
-		LOG_SIZE=$(stat -c%s $(ls -1 "$SV_LOGPATH/$PRGTAG.err.log"-* | tail -n1))
-		if [[ "$LOG_SIZE" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-			RESTART=1
+		log_size=$(stat -c%s $(ls -1 "$SV_LOGPATH/$SVTAG.$1.err.log"-* | tail -n1))
+		if [[ "$log_size" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
+			ret=0
 		fi
 	fi
-	if [[ "$RESTART" ]]; then
-		info_out "Stop a child for log reopening..."
-		child_kill
-		rm_old_logs "$SV_LOGPATH/$PRGTAG.log" $SV_PRG_LOGFILE_MAXCNT
-		rm_old_logs "$SV_LOGPATH/$PRGTAG.err.log" $SV_PRG_LOGFILE_MAXCNT
-	fi
+
+	return $ret
 }
 
 mk_log_postfix()
@@ -196,11 +404,9 @@ mk_log_postfix()
 
 show_usage()
 {
-	echo "Usage: `basename $0` TAG BIN_FULLPATH BIN_ARG1 ..."
+	echo "Usage: `basename $0` TAG"
 	echo "  Where:"
-	echo "    TAG           - prefix for log and pid files (no '-' at start)"
-	echo "    BIN_FULLPATH  - a full path of binary to supervise"
-	echo "    BIN_ARG1, etc - a cmd args for binary"
+	echo "    TAG           - prefix for supervisor log and pid files (no '-' at start)"
 }
 
 show_version()
@@ -208,7 +414,7 @@ show_version()
 	echo "Version 1.0"
 }
 
-case "$1" in
+case "${1:-}" in
 -h|--help|help)
 	show_usage
 	exit
@@ -218,20 +424,15 @@ case "$1" in
 	exit
 	;;
 -SUPERVISE)
-	shift
-	PRGTAG=$1
-	shift
+	SVTAG=$2
 	;;
 -*)
 	err_exit "Wrong option: $1"
 	exit 1
 	;;
 *)
-	PRGTAG=$1
-	shift
-	BINPATH=`get_abspath "$1"`
-	shift
-	setsid $0 -SUPERVISE $PRGTAG "$BINPATH" "$@" &
+	save_cmds
+	setsid $0 -SUPERVISE $1 &
 	exit
 	;;
 esac
@@ -241,21 +442,21 @@ if [[ "$SV_PIDPATH" ]] && [[ ! -e "$SV_PIDPATH" ]]; then
 	  err_exit "Can't create pid directory"
 fi
 if [[ "$SV_PIDPATH" ]]; then
-	echo $$ > "$SV_PIDPATH/$PRGTAG.pid"
+	echo $$ > "$SV_PIDPATH/$SVTAG.pid"
 fi
 LOG_POSTFIX=`mk_log_postfix`
 if is_true "$SV_CHDIR"; then
 	cd /
 fi
 if [[ "$SV_SYSLOG" ]]; then
-	exec > >(logger -t "$PRGTAG") 2>&1
+	exec > >(logger -t "$SVTAG") 2>&1
 else
 	if [[ "$SV_LOGPATH" ]]; then
 		if [[ ! -e "$SV_LOGPATH" ]]; then
 			mkdir -p "$SV_LOGPATH" ||
 			  err_exit "Can't create log directory"
 		fi
-		exec >>"$SV_LOGPATH/$PRGTAG.sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.sv.err.log-$LOG_POSTFIX"
+		exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$LOG_POSTFIX"
 	fi
 fi
 
@@ -269,32 +470,29 @@ trap _hdl_exit EXIT
 
 RUNNING=1
 RESTART=
+CPIDS=""
 while [[ "$RUNNING" ]]; do
-	if ! is_child_running; then
-		info_out "Child is not running. Starting..."
-		if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
-			"$@" &
-		else
-			"$@" >>"$SV_LOGPATH/$PRGTAG.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$PRGTAG.err.log-$LOG_POSTFIX" &
-		fi
-		PRGPID=$!
-		info_out "Child is started: pid=$PRGPID"
-	fi
-	wait %1
+	childs_start
+	wait -n -p fpid
 	info_out "Got some signal"
 	if [[ "$RUNNING" ]]; then
-		sleep $SV_RESTART_DELAY
+		# May be wait is just interruped by SIGHUP
+		if [[ "${fpid:-}" ]]; then
+			child_cleanup $fpid
+			info_out "Wait $SV_RESTART_DELAY before restarting..."
+			sleep $SV_RESTART_DELAY
+		fi
 	fi
 	if [[ "$RESTART" ]]; then
 		info_out "Got SIGHUP"
 		RESTART=
 		if [[ -z "$SV_SYSLOG" ]]; then
 			info_out "Reopen sv log files"
-			reopen_logs
+			reopen_childs_logs
 		fi
 	fi
 done
 
 info_out "Stopping a child..."
-child_kill
+childs_kill "$CPIDS"
 info_out "Stopping supervisor"
