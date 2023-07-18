@@ -407,7 +407,7 @@ is_child_log_is_big()
 
 mk_log_postfix()
 {
-	echo `date +'%Y%m%d-%T'`
+	echo `date +'%Y%m%d'`
 }
 
 show_usage()
