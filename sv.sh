@@ -2,7 +2,7 @@
 # Copyright (c) 2023 Oleg Nemanov <lego12239@yandex.ru>
 # Version 1.0
 # SPDX-License-Identifier: BSD-2-Clause
-# Dependencies: sleep, date, rm, sed, setsid, head, tail, kill, logger, stat
+# Dependencies: bash >=4.3 (for wait -n support), sleep, date, rm, sed, setsid, head, tail, kill, logger, stat
 
 set -u
 
