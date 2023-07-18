@@ -223,22 +223,31 @@ childs_start()
 	done
 }
 
-child_cleanup()
+childs_cleanup()
 {
-	local fpid cpids cpid tag cmd cpids_new is_killall
+	local childs child cpids cpid tag cmd cpids_new is_killall is_term is_any_term
 
-	fpid=$1
-	is_killall=
+	childs=`jobs -l | sed -nre 's/^[^[:space:]]+[[:space:]]+([0-9]+)[[:space:]]+(Running|Stopped)[[:space:]].*$/\1/; T; p;'`
 	cpids="$CPIDS"
 	cpids_new=""
+	is_killall=
+	is_any_term=
 	while [[ "$cpids" ]]; do
 		cpid=${cpids%%$NL*}
 		cpids="${cpids#*$NL}"
 
 		tag=${cpid%% *}
 		cpid=${cpid#* }
-		if [[ "$cpid" = "$fpid" ]]; then
+		is_term=1
+		for child in $childs; do
+			if [[ "$child" = "$cpid" ]]; then
+				cpids_new="${cpids_new}$tag $cpid$NL"
+				is_term=
+			fi
+		done
+		if [[ "$is_term" ]]; then
 			info_out "Child $tag is stopped"
+			is_any_term=1
 			cmd=`cspec_get $tag`
 			# remove a tag
 			cmd="${cmd#* }"
@@ -246,8 +255,6 @@ child_cleanup()
 				info_out "Child $tag restart strategy is 'all': stop other children"
 				is_killall=1
 			fi
-		else
-			cpids_new="${cpids_new}$tag $cpid$NL"
 		fi
 	done
 
@@ -256,6 +263,12 @@ child_cleanup()
 		childs_kill "$CPIDS"
 		CPIDS=""
 	fi
+
+	if [[ "$is_any_term" ]]; then
+		return 0
+	fi
+
+	return 1
 }
 
 # Do not forget to remove last "E" char from the result.
@@ -364,19 +377,14 @@ reopen_childs_logs()
 		cpid=${cpid#* }
 
 		if is_child_log_is_big $tag; then
-			# If any previous child has "any" restart
-			# strategy, then all children are already
-			# killed. Thus, $CPIDS is empty and we don't
-			# try to kill them.
-			if [[ "$CPIDS" ]]; then
-				info_out "Stop child $tag for log reopening..."
-				childs_kill "$tag $cpid$NL"
-				child_cleanup $cpid
-			fi
+			info_out "Stop child $tag for log reopening..."
+			childs_kill "$tag $cpid$NL"
 		fi
 		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.log" $SV_PRG_LOGFILE_MAXCNT
 		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.err.log" $SV_PRG_LOGFILE_MAXCNT
 	done
+
+	childs_cleanup
 }
 
 is_child_log_is_big()
@@ -473,12 +481,11 @@ RESTART=
 CPIDS=""
 while [[ "$RUNNING" ]]; do
 	childs_start
-	wait -n -p fpid
+	wait -n
 	info_out "Got some signal"
 	if [[ "$RUNNING" ]]; then
 		# May be wait is just interruped by SIGHUP
-		if [[ "${fpid:-}" ]]; then
-			child_cleanup $fpid
+		if childs_cleanup; then
 			info_out "Wait $SV_RESTART_DELAY before restarting..."
 			sleep $SV_RESTART_DELAY
 		fi
