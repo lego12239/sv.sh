@@ -69,14 +69,19 @@ is_true()
 	esac
 }
 
-get_abspath()
+mk_abspath()
 {
 	local p
 
 	p="$1"
-	if [[ "$p" = "." ]] || [[ "$p" = ".." ]] || [[ "$p" != "${p#./}" ]] ||
-	   [[ "$p" != "${p#../}" ]]; then
-		p="$PWD/$p"
+	if [[ "${2:-}" = "bin" ]]; then
+		if [[ "$p" != "${p#./}" ]] || [[ "$p" != "${p#../}" ]]; then
+			p="$PWD/$p"
+		fi
+	else
+		if [[ "$p" = "${p#/}" ]]; then
+			p="$PWD/$p"
+		fi
 	fi
 
 	echo "$p"
@@ -133,7 +138,7 @@ save_cmds()
 				err_exit "Child spec error: tag already used: '$tag'"
 			fi
 			tags="$tags$tag "
-			SV_CMDS="${SV_CMDS}$act $tag $rs `get_abspath $prg` $opts$NL"
+			SV_CMDS="${SV_CMDS}$act $tag $rs `mk_abspath "$prg" bin` $opts$NL"
 			;;
 		*)
 			err_exit "Child spec error: wrong action: '$act'"
@@ -443,10 +448,10 @@ case "${1:-}" in
 *)
 	save_cmds
 	if [[ "$SV_PIDPATH" ]]; then
-		SV_PIDPATH=`get_abspath "$SV_PIDPATH"`
+		SV_PIDPATH=`mk_abspath "$SV_PIDPATH"`
 	fi
 	if [[ "$SV_LOGPATH" ]]; then
-		SV_LOGPATH=`get_abspath "$SV_LOGPATH"`
+		SV_LOGPATH=`mk_abspath "$SV_LOGPATH"`
 	fi
 	setsid $0 -SUPERVISE $1 &
 	exit
