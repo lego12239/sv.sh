@@ -34,8 +34,6 @@ If sv.sh log to syslog, it logs its and child stdout/stderr to a specified
 syslog priority. Logging to syslog is done via logger utility, which run in
 the background.
 
-child termination SV_KILLSEQ.
-
 
 SPEC
 ====
@@ -58,7 +56,7 @@ Where:
  run action parameters: TAG RS BIN [BIN_PRMS].
    TAG is used for log messages.
    RS is a restart strategy. one or all. one - if this program is terminated, then
-   restart it. all - if this program tis terminated, then restart all programs from
+   restart it. all - if this program is terminated, then restart all programs from
    SPEC.
    BIN is a binary to start.
    BIN_PRMS is a command line parameters for specified binary.
@@ -112,7 +110,7 @@ A script to start some service can be like this:
 
 #!/bin/bash
 # Supervisor settings
-export SV_PIDPATH=/opt/myprog/run
+export SV_PIDPATH=/var/run
 export SV_SYSLOG=user.notice
 echo "run prg1 one sleep 10s
 run prg2 all sleep 35s" | ./sv.sh env1
