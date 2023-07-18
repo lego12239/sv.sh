@@ -412,7 +412,9 @@ mk_log_postfix()
 
 show_usage()
 {
-	echo "Usage: `basename $0` TAG"
+	echo "Usage: `basename $0` -h|--help"
+	echo "       `basename $0` -v|--version"
+	echo "       `basename $0` TAG"
 	echo "  Where:"
 	echo "    TAG           - prefix for supervisor log and pid files (no '-' at start)"
 }
