@@ -440,6 +440,12 @@ case "${1:-}" in
 	;;
 *)
 	save_cmds
+	if [[ "$SV_PIDPATH" ]]; then
+		SV_PIDPATH=`get_abspath "$SV_PIDPATH"`
+	fi
+	if [[ "$SV_LOGPATH" ]]; then
+		SV_LOGPATH=`get_abspath "$SV_LOGPATH"`
+	fi
 	setsid $0 -SUPERVISE $1 &
 	exit
 	;;
