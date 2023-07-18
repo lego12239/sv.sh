@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) 2023 Oleg Nemanov <lego12239@yandex.ru>
-# Version 2.0
+# Version 2.1
 # SPDX-License-Identifier: BSD-2-Clause
 # Dependencies: bash >=4.3 (for wait -n support), sleep, date, rm, sed, setsid, head, tail, kill, logger, stat
 
@@ -426,7 +426,7 @@ show_usage()
 
 show_version()
 {
-	echo "Version 2.0"
+	echo "Version 2.1"
 }
 
 case "${1:-}" in
