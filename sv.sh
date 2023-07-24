@@ -17,7 +17,7 @@ SV_LOGFILES_CNT=${SV_LOGFILES_CNT:-30}
 # Maximum size(in bytes) of child log file for log reopening.
 SV_PRG_LOGFILE_MAXSIZE=${SV_PRG_LOGFILE_MAXSIZE:-10000000}
 # A maximum count of child log files.
-SV_PRG_LOGFILES_CNT=${SV_PRG_LOGFILES_CNT:-3}
+SV_PRG_LOGFILES_CNT=${SV_PRG_LOGFILES_CNT:-$SV_LOGFILES_CNT}
 # The value is a syslog priority (facility.level). See logger(1).
 # If value is not empty, then loggin to files is disabled.
 # E.g. "user.notice".
