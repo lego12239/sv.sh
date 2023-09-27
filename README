@@ -53,8 +53,8 @@ Where:
    action parameters.
 
  wait action parameters: TIME. TIME is a number with a time unit. I.e. 10s, 4s, etc.
- run action parameters: TAG RS BIN [BIN_PRMS].
-   TAG is used for log messages.
+ run action parameters: PRGTAG RS BIN [BIN_PRMS].
+   PRGTAG is used for log messages.
    RS is a restart strategy. one or all. one - if this program is terminated, then
    restart it. all - if this program is terminated, then restart all programs from
    SPEC.
