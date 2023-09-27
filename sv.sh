@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copyright (c) 2023 Oleg Nemanov <lego12239@yandex.ru>
-# Version 2.1
+# Version 2.2
 # SPDX-License-Identifier: BSD-2-Clause
 # Dependencies: bash >=4.3 (for wait -n support), sleep, date, rm, sed, setsid, head, tail, logger, stat
 
