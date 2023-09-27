@@ -2,7 +2,7 @@
 # Copyright (c) 2023 Oleg Nemanov <lego12239@yandex.ru>
 # Version 2.1
 # SPDX-License-Identifier: BSD-2-Clause
-# Dependencies: bash >=4.3 (for wait -n support), sleep, date, rm, sed, setsid, head, tail, kill, logger, stat
+# Dependencies: bash >=4.3 (for wait -n support), sleep, date, rm, sed, setsid, head, tail, logger, stat
 
 set -u
 
@@ -161,7 +161,7 @@ cspec_get()
 		case "$act" in
 		run)
 			tag=${cmd%% *}
-			
+
 			if [[ "$tag" = "$1" ]]; then
 				echo $cmd
 				return
@@ -196,7 +196,7 @@ childs_start()
 		run)
 			tag=${cmd%% *}
 			cmd="${cmd#* }"
-			
+
 			cpids="$CPIDS"
 			is_run=
 			while [[ "$cpids" ]]; do
