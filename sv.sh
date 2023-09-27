@@ -356,7 +356,7 @@ rm_old_logs()
 
 	ls -1 "${1}"* | head -n-$2 |
 	  while read fname; do
-		echo rm $fname
+		rm -f $fname
 	done
 }
 
