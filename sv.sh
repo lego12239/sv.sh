@@ -412,20 +412,27 @@ reopen_childs_logs()
 
 is_child_log_is_big()
 {
-	local log_size ret
+	local fname p last_log log_size log_prefix
 
-	ret=1
-	log_size=$(stat -c%s $(ls -1 "$SV_LOGPATH/$SVTAG.$1.log"-* | tail -n1))
-	if [[ "$log_size" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-		ret=0
-	else
-		log_size=$(stat -c%s $(ls -1 "$SV_LOGPATH/$SVTAG.$1.err.log"-* | tail -n1))
-		if [[ "$log_size" -ge "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
-			ret=0
+	for log_prefix in "$SVTAG.$1.log" "$SVTAG.$1.err.log"; do
+		last_log=
+		while read fname; do
+			# If the file name doesn't match the prefix, then skip it.
+			p="${fname#$log_prefix}"
+			if [[ "$p" = "$fname" ]]; then
+				continue
+			fi
+			last_log="$fname"
+		done < <(ls -1 "$SV_LOGPATH/")
+		if [[ "$last_log" ]]; then
+			log_size=`stat -c%s "$SV_LOGPATH/$last_log"`
+			if [[ "$log_size" -gt "$SV_PRG_LOGFILE_MAXSIZE" ]]; then
+				return 0
+			fi
 		fi
-	fi
+	done
 
-	return $ret
+	return 1
 }
 
 mk_svlog_postfix()
