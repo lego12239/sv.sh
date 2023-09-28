@@ -385,8 +385,9 @@ reopen_childs_logs()
 		return
 	fi
 
+	SVLOG_POSTFIX=`mk_svlog_postfix`
 	LOG_POSTFIX=`mk_log_postfix`
-	exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$LOG_POSTFIX"
+	exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$SVLOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$SVLOG_POSTFIX"
 	rm_old_logs "${SVTAG}-sv.log" $SV_LOGFILES_CNT
 	rm_old_logs "${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
 
@@ -427,9 +428,14 @@ is_child_log_is_big()
 	return $ret
 }
 
-mk_log_postfix()
+mk_svlog_postfix()
 {
 	echo `date +'%Y%m%d'`
+}
+
+mk_log_postfix()
+{
+	echo `date +'%Y%m%dT%H%M%S'`
 }
 
 show_usage()
@@ -482,6 +488,7 @@ fi
 if [[ "$SV_PIDPATH" ]]; then
 	echo $$ > "$SV_PIDPATH/$SVTAG.pid"
 fi
+SVLOG_POSTFIX=`mk_svlog_postfix`
 LOG_POSTFIX=`mk_log_postfix`
 if is_true "$SV_CHDIR"; then
 	cd /
@@ -494,7 +501,7 @@ else
 			mkdir -p "$SV_LOGPATH" ||
 			  err_exit "Can't create log directory"
 		fi
-		exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$LOG_POSTFIX"
+		exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$SVLOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$SVLOG_POSTFIX"
 	fi
 fi
 
