@@ -19,7 +19,7 @@ sv.sh daemonize after start and run specified commands in SPEC.
 If any child has terminated, then sv.sh run it again.
 
 TAG is used to name a pid file and log files or as syslog tag (if a logging
-to syslog is enabled). TAG shouldn't start with "-" (dash).
+to syslog is enabled). TAG shouldn't start with "-" (dash) and contains dot.
 
 sv.sh can log to stdout/stderr, to files or to syslog. If SV_SYSLOG is not
 empty, then sv.sh log to syslog. Otherwise, sv.sh log to files.
@@ -28,7 +28,8 @@ If sv.sh log to files, it creates separate files for sv stdout and stderr
 and separate files for child stdout and stderr (4 files in total).
 if sv.sh is got SIGHUP, it reopen it log and check a child log size. If a
 child log is bigger than SV_PRG_LOGFILE_MAXSIZE bytes, then it stop a child
-and run it again with redirection to new log files.
+and run it again with a redirection to new log files. Thus, more often SIGHUP
+is sent - better size control.
 
 If sv.sh log to syslog, it logs its and child stdout/stderr to a specified
 syslog priority. Logging to syslog is done via logger utility, which run in
@@ -54,7 +55,7 @@ Where:
 
  wait action parameters: TIME. TIME is a number with a time unit. I.e. 10s, 4s, etc.
  run action parameters: PRGTAG RS BIN [BIN_PRMS].
-   PRGTAG is used for log messages.
+   PRGTAG is used for log messages. It shouldn't contains dot.
    RS is a restart strategy. one or all. one - if this program is terminated, then
    restart it. all - if this program is terminated, then restart all programs from
    SPEC.
