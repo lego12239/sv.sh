@@ -1,3 +1,7 @@
 - add man page
 - add restart settings(intensity and period settings - if we exceed this, sv exits)
 - use getopt.sh for option parsing instead of environment variables?
+- add watchdog support(separate output file for cpids(TAG.cpids) and input file
+  for PRGTAG like TAG.restart)
+- hook for start up(for cgroup and oom killer prio setting)
+- compress old logs
