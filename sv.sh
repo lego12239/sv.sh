@@ -352,12 +352,29 @@ childs_sendsig()
 
 rm_old_logs()
 {
-	local fname
+	local fname fnames p IFS_old cnt
 
-	ls -1 "${1}"* | head -n-$2 |
-	  while read fname; do
+	fnames=""
+	while read fname; do
+		# If the file name doesn't match the prefix, then skip it.
+		p="${fname#$1}"
+		if [[ "$p" = "$fname" ]]; then
+			continue
+		fi
+		fnames="$fname$NL$fnames"
+	done < <(ls -1 "$SV_LOGPATH/")
+
+	IFS_old="$IFS"
+	IFS="$NL"
+	cnt=$2
+	for fname in $fnames; do
+		if [[ $cnt -gt 0 ]]; then
+			cnt=$((cnt - 1))
+			continue
+		fi
 		rm -f $fname
 	done
+	IFS="$IFS_old"
 }
 
 reopen_childs_logs()
@@ -370,8 +387,8 @@ reopen_childs_logs()
 
 	LOG_POSTFIX=`mk_log_postfix`
 	exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$LOG_POSTFIX"
-	rm_old_logs "$SV_LOGPATH/${SVTAG}-sv.log" $SV_LOGFILES_CNT
-	rm_old_logs "$SV_LOGPATH/${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
+	rm_old_logs "${SVTAG}-sv.log" $SV_LOGFILES_CNT
+	rm_old_logs "${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
 
 	cpids="$CPIDS"
 	while [[ "$cpids" ]]; do
@@ -385,8 +402,8 @@ reopen_childs_logs()
 			info_out "Stop child $tag for log reopening..."
 			childs_kill "$tag $cpid$NL"
 		fi
-		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.log" $SV_PRG_LOGFILES_CNT
-		rm_old_logs "$SV_LOGPATH/$SVTAG.$tag.err.log" $SV_PRG_LOGFILES_CNT
+		rm_old_logs "$SVTAG.$tag.log" $SV_PRG_LOGFILES_CNT
+		rm_old_logs "$SVTAG.$tag.err.log" $SV_PRG_LOGFILES_CNT
 	done
 
 	childs_cleanup
