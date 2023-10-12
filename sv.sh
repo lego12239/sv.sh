@@ -400,7 +400,7 @@ reopen_childs_logs()
 		cpid=${cpid#* }
 
 		if is_child_log_is_big $tag; then
-			info_out "Stop child $tag for log reopening..."
+			info_out "Child $tag logs is too big. Stop it for log reopening..."
 			childs_kill "$tag $cpid$NL"
 		fi
 		rm_old_logs "$SVTAG.$tag.log" $SV_PRG_LOGFILES_CNT
@@ -535,10 +535,9 @@ while [[ "$RUNNING" ]]; do
 		fi
 	fi
 	if [[ "$RESTART" ]]; then
-		info_out "Got SIGHUP"
+		info_out "Got SIGHUP (logs reopen request)"
 		RESTART=
 		if [[ -z "$SV_SYSLOG" ]]; then
-			info_out "Reopen sv log files"
 			reopen_childs_logs
 		fi
 	fi
