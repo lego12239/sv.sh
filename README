@@ -74,10 +74,14 @@ SV_RESTART_DELAY
     Default is 2s.
 SV_LOGPATH
     The directory for log files.
+	If a path isn't an absolute path, then it's converted to an absolute path
+	by prepending "$PWD/" to it.
     If unset, then log to stdout/stderr.
     Default is "" (unset).
 SV_PIDPATH
     The directory for pid file with our pid.
+	If a path isn't an absolute path, then it's converted to an absolute path
+	by prepending "$PWD/" to it.
     If unset, then do not create a pid file.
     Default is "" (unset).
 SV_LOGFILES_CNT
