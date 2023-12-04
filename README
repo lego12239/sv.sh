@@ -129,10 +129,11 @@ svstop  - stop of sv. After childs are stopped. The last action of execution.
           PRMS: SVPID.
 start   - child is started. PRMS: PRGTAG PRGPID.
 stop    - stop a child. Before SV_KILLSEQ is sent to a child. PRMS: PRGTAG PRGPID.
+logrotate - child log is rotated. PRMS: FILENAME_PREV.
 usr1    - got SIGUSR1.
 usr2    - got SIGUSR2.
 
-Where, SVPID is sv.sh pid.
+Where, SVPID is sv.sh pid; FILENAME_PREV is a previous log file name.
 
 For usr1 and usr2 event, sv.sh checks an exit code of a hook. Exit code should
 be one of:
