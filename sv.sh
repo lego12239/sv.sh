@@ -34,6 +34,7 @@ SV_CHDIR=${SV_CHDIR:-yes}
 # svstop  - stop of sv. PRMS: SVPID. Ignore ecode.
 # start   - child is started. PRMS: PRGTAG PRGPID. Ignore ecode.
 # stop    - stop a child. PRMS: PRGTAG PRGPID. Ignore ecode.
+# logrotate - child log is rotated. PRMS: FILENAME_PREV. Ignore ecode.
 # usr1    - got SIGUSR1
 # usr2    - got SIGUSR2
 # Exit code should be one of:
@@ -457,17 +458,23 @@ rm_old_logs()
 
 reopen_childs_logs()
 {
-	local cpids cpid tag
+	local cpids cpid tag svlog_postfix_old log_postfix_old
 
 	if [[ "$SV_SYSLOG" ]] || [[ -z "$SV_LOGPATH" ]]; then
 		return
 	fi
 
+	svlog_postfix_old="$SVLOG_POSTFIX"
 	SVLOG_POSTFIX=`mk_svlog_postfix`
+	log_postfix_old="$LOG_POSTFIX"
 	LOG_POSTFIX=`mk_log_postfix`
-	exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$SVLOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$SVLOG_POSTFIX"
-	rm_old_logs "${SVTAG}-sv.log" $SV_LOGFILES_CNT
-	rm_old_logs "${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
+	if [[ "$svlog_postfix_old" != "$SVLOG_POSTFIX" ]]; then
+		exec >>"$SV_LOGPATH/${SVTAG}-sv.log-$SVLOG_POSTFIX" 2>>"$SV_LOGPATH/${SVTAG}-sv.err.log-$SVLOG_POSTFIX"
+		rm_old_logs "${SVTAG}-sv.log" $SV_LOGFILES_CNT
+		rm_old_logs "${SVTAG}-sv.err.log" $SV_LOGFILES_CNT
+		run_hook logrotate "$SV_LOGPATH/${SVTAG}-sv.log-$svlog_postfix_old"
+		run_hook logrotate "$SV_LOGPATH/${SVTAG}-sv.err.log-$svlog_postfix_old"
+	fi
 
 	cpids="$CPIDS"
 	while [[ "$cpids" ]]; do
@@ -477,12 +484,14 @@ reopen_childs_logs()
 		tag=${cpid%% *}
 		cpid=${cpid#* }
 
+		rm_old_logs "$SVTAG.$tag.log" $SV_PRG_LOGFILES_CNT
+		rm_old_logs "$SVTAG.$tag.err.log" $SV_PRG_LOGFILES_CNT
 		if is_child_log_is_big $tag; then
 			info_out "Child $tag logs is too big. Stop it for log reopening..."
 			childs_kill "$tag $cpid$NL"
+			run_hook logrotate "$SV_LOGPATH/${SVTAG}.$tag.log-$log_postfix_old"
+			run_hook logrotate "$SV_LOGPATH/${SVTAG}.$tag.err.log-$log_postfix_old"
 		fi
-		rm_old_logs "$SVTAG.$tag.log" $SV_PRG_LOGFILES_CNT
-		rm_old_logs "$SVTAG.$tag.err.log" $SV_PRG_LOGFILES_CNT
 	done
 
 	childs_cleanup
