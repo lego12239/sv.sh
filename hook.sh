@@ -23,6 +23,7 @@ case $event in
 	;;
 "usr2")
 	echo "hook: $tag: got $event: $@"
+	echo "hook: env: `env`"
 	;;
 "logrotate")
 	echo "hook: $tag: got $event: $@"
