@@ -2,6 +2,7 @@
 
 _hdl_sig()
 {
+	echo "Got some signal. Ignore. " >&2
 	return 0
 }
 
