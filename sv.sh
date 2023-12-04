@@ -42,6 +42,7 @@ SV_CHDIR=${SV_CHDIR:-yes}
 # 2 - error, stop sv
 SV_HOOK=${SV_HOOK:-}
 
+export SV_LOGPATH SV_PIDPATH
 
 HOOK_ECODE=0
 NL="
