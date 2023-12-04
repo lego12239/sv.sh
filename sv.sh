@@ -27,8 +27,23 @@ SV_SYSLOG=${SV_SYSLOG:-}
 SV_KILLSEQ=${SV_KILLSEQ:-TERM/2s/TERM/4s}
 # Set to "no" to not change dir to / after startup.
 SV_CHDIR=${SV_CHDIR:-yes}
+# Hook script.
+# Usage: HOOKSCRIPT TAG EVENT [PRMS]
+# Where EVENT is one of:
+# svstart - sv is started. PRMS: SVPID. Ignore ecode.
+# svstop  - stop of sv. PRMS: SVPID. Ignore ecode.
+# start   - child is started. PRMS: PRGTAG PRGPID. Ignore ecode.
+# stop    - stop a child. PRMS: PRGTAG PRGPID. Ignore ecode.
+# usr1    - got SIGUSR1
+# usr2    - got SIGUSR2
+# Exit code should be one of:
+# 0 - ok
+# 1 - error, restart children
+# 2 - error, stop sv
+SV_HOOK=${SV_HOOK:-}
 
 
+HOOK_ECODE=0
 NL="
 "
 
@@ -120,6 +135,40 @@ hdl_sighup()
 {
 #	_hdl_sig SIGHUP
 	RESTART=1
+}
+
+hdl_sigusr1()
+{
+	EVENT=usr1
+}
+
+hdl_sigusr2()
+{
+	EVENT=usr2
+}
+
+run_hook()
+{
+	local event
+
+	if [[ -z "$SV_HOOK" ]]; then
+		return
+	fi
+
+	event=$1
+	shift
+
+	info_out "Hook on event '$event': $@"
+	case $event in
+	svstart|svstop)
+		"$SV_HOOK" ${SVTAG} $event $$
+		;;
+	*)
+		"$SV_HOOK" ${SVTAG} $event "$@"
+		;;
+	esac
+	HOOK_ECODE=$?
+	info_out "Hook ecode is $HOOK_ECODE"
 }
 
 save_cmds()
@@ -219,6 +268,7 @@ childs_start()
 				fi
 				CPIDS="${CPIDS}$tag $!$NL"
 				info_out "Child $tag is started: pid=$!"
+				run_hook start $tag $!
 			fi
 			;;
 		*)
@@ -306,6 +356,11 @@ childs_kill()
 	local SIG cnt kseq cpids
 
 	cpids="$1"
+
+	childs_run_hook "$cpids" stop
+	cpids=`cpids_cleanup "$cpids"`
+	cpids=${cpids%E}
+
 	kseq="$SV_KILLSEQ/"
 	while [[ "$cpids" ]] && [[ "${kseq}" ]]; do
 		SIG=${kseq%%/*}
@@ -347,6 +402,28 @@ childs_sendsig()
 		cpid=${cpid#* }
 		info_out "Sending SIG$sig to a child $tag..."
 		kill -$sig $cpid
+	done
+}
+
+childs_run_hook()
+{
+	local sig cpids cpid tag event
+
+	if [[ -z "$SV_HOOK" ]]; then
+		return
+	fi
+
+	cpids="$1"
+	shift
+	event="$1"
+	shift
+	while [[ "$cpids" ]]; do
+		cpid=${cpids%%$NL*}
+		cpids="${cpids#*$NL}"
+
+		tag=${cpid%% *}
+		cpid=${cpid#* }
+		run_hook $event $tag $cpid "$@"
 	done
 }
 
@@ -483,6 +560,9 @@ case "${1:-}" in
 	if [[ "$SV_LOGPATH" ]]; then
 		SV_LOGPATH=`mk_abspath "$SV_LOGPATH"`
 	fi
+	if [[ "$SV_HOOK" ]]; then
+		SV_HOOK=`mk_abspath "$SV_HOOK"`
+	fi
 	setsid $0 -SUPERVISE $1 &
 	exit
 	;;
@@ -518,9 +598,14 @@ trap hdl_sigterm SIGTERM
 trap hdl_sigint SIGINT
 trap hdl_sigquit SIGQUIT
 trap hdl_sighup SIGHUP
+trap hdl_sigusr1 SIGUSR1
+trap hdl_sigusr2 SIGUSR2
 trap _hdl_exit EXIT
 
+run_hook svstart
+
 RUNNING=1
+EVENT=
 RESTART=
 CPIDS=""
 while [[ "$RUNNING" ]]; do
@@ -541,8 +626,25 @@ while [[ "$RUNNING" ]]; do
 			reopen_childs_logs
 		fi
 	fi
+	# May be SIGUSR1 or SIGUSR2?
+	if [[ "$EVENT" ]]; then
+		run_hook $EVENT
+		EVENT=
+		case $HOOK_ECODE in
+		0)
+			;;
+		1)
+			childs_kill "$CPIDS"
+			;;
+		2)
+			RUNNING=
+			;;
+		esac
+	fi
 done
 
 info_out "Stopping a child..."
 childs_kill "$CPIDS"
 info_out "Stopping supervisor"
+
+run_hook svstop
