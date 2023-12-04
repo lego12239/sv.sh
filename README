@@ -35,6 +35,9 @@ If sv.sh log to syslog, it logs its and child stdout/stderr to a specified
 syslog priority. Logging to syslog is done via logger utility, which run in
 the background.
 
+if SV_HOOK is not empty, then its value is treat as hook script name. This
+script is run on various events. See HOOK section below for details.
+
 
 SPEC
 ====
@@ -106,6 +109,43 @@ SV_KILLSEQ
 SV_CHDIR
     Set to "no" to not change dir to / after startup.
     Default is "yes".
+SV_HOOK
+    Hook script.
+	If a path isn't an absolute path, then it's converted to an absolute path
+	by prepending "$PWD/" to it.
+	See section HOOK below.
+
+
+HOOK
+====
+
+Hook script is called by sv.sh in synchronous manner. That is, sv.sh don't do
+any job during hook execution and wait until it is finished.
+
+Hook script command line arguments: TAG EVENT [PRMS].
+Where EVENT is on of:
+svstart - sv is started. Before childs are started. PRMS: SVPID.
+svstop  - stop of sv. After childs are stopped. The last action of execution.
+          PRMS: SVPID.
+start   - child is started. PRMS: PRGTAG PRGPID.
+stop    - stop a child. Before SV_KILLSEQ is sent to a child. PRMS: PRGTAG PRGPID.
+usr1    - got SIGUSR1.
+usr2    - got SIGUSR2.
+
+Where, SVPID is sv.sh pid.
+
+For usr1 and usr2 event, sv.sh checks an exit code of a hook. Exit code should
+be one of:
+0 - ok
+1 - error, restart children
+2 - error, stop sv
+
+svstart can be used for cgroup/oom-killer configuration. svstop for some cleanup.
+start for some actions that should be executed on child start.
+stop can be used to terminate a child correctly if it can't be terminated gracefully
+by some signal (e.g. vanilla tcl without signal handling package) and also for
+some actions that sould be executed on child stop.
+usr1/usr2 can be used for some watchdog.
 
 
 EXAMPLE
