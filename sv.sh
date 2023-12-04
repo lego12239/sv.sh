@@ -618,6 +618,7 @@ RUNNING=1
 EVENT=
 RESTART=
 CPIDS=""
+export CPIDS
 while [[ "$RUNNING" ]]; do
 	childs_start
 	wait -n
