@@ -145,8 +145,18 @@ svstart can be used for cgroup/oom-killer configuration. svstop for some cleanup
 start for some actions that should be executed on child start.
 stop can be used to terminate a child correctly if it can't be terminated gracefully
 by some signal (e.g. vanilla tcl without signal handling package) and also for
-some actions that sould be executed on child stop.
+some actions that sould be executed on child stop. logrotate can be used to
+compress a previous log, for example.
 usr1/usr2 can be used for some watchdog.
+
+sv.sh export to a hook environment the next vars in addition to others:
+SV_LOGPATH, SV_PIDPATH, CPIDS. Where CPIDS contains children pids in the next
+format:
+PRGTAG1 PID1
+PRGTAG2 PID2
+...
+
+I.e. one line for an each child.
 
 
 EXAMPLE
