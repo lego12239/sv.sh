@@ -24,6 +24,9 @@ case $event in
 "usr2")
 	echo "hook: $tag: got $event: $@"
 	;;
+"logrotate")
+	echo "hook: $tag: got $event: $@"
+	;;
 *)
 	echo "hook: $tag: unknown event: $event $@" >&2
 	;;
