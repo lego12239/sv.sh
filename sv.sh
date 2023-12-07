@@ -641,6 +641,10 @@ case "${1:-}" in
 	exit 1
 	;;
 *)
+	if [[ -z "${1:-}" ]]; then
+		err_exit "Empty tag: sv instance tag should be specified"
+	fi
+
 	save_cmds
 	if [[ "$SV_PIDPATH" ]]; then
 		SV_PIDPATH=`mk_abspath "$SV_PIDPATH"`
