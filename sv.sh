@@ -655,6 +655,9 @@ case "${1:-}" in
 	if [[ "$SV_HOOK" ]]; then
 		SV_HOOK=`mk_abspath "$SV_HOOK"`
 	fi
+	if [[ "$SV_PIDPATH" ]] && [[ -e "$SV_PIDPATH/$1.pid" ]]; then
+		err_exit "It seems like sv instance is already running (remove pid file if you are sure it's not)."
+	fi
 	setsid $0 -SUPERVISE $1 &
 	exit
 	;;
@@ -665,6 +668,9 @@ if [[ "$SV_PIDPATH" ]] && [[ ! -e "$SV_PIDPATH" ]]; then
 	  err_exit "Can't create pid directory"
 fi
 if [[ "$SV_PIDPATH" ]]; then
+	if [[ -e "$SV_PIDPATH/$SVTAG.pid" ]]; then
+		err_exit "It seems like sv instance is already running (remove pid file if you are sure it's not)."
+	fi
 	echo $$ > "$SV_PIDPATH/$SVTAG.pid"
 fi
 SVLOG_POSTFIX=`mk_svlog_postfix`
