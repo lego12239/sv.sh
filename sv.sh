@@ -536,6 +536,7 @@ show_usage()
 {
 	echo "Usage: `basename $0` -h|--help"
 	echo "       `basename $0` -v|--version"
+	echo "       `basename $0` --check-env"
 	echo "       `basename $0` TAG"
 	echo "  Where:"
 	echo "    TAG           - prefix for supervisor log and pid files (no '-' at start)"
@@ -546,6 +547,79 @@ show_version()
 	echo "Version 2.4.0"
 }
 
+check_env()
+{
+	local bver
+
+	echo Checking environment:
+	if ! which which >/dev/null 2>&1; then
+		echo "There is no which command" >&2
+		exit 1
+	fi
+	echo -n "sed... "
+	if ! which sed >/dev/null 2>&1; then
+		echo "There is no sed" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "bash... "
+	if ! which bash >/dev/null 2>&1; then
+		echo "There is no bash" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "bash version >= 4.3... "
+	bver=`bash --version | sed -nre '1 s/^.*?[Vv][Ee][Rr][Ss][Ii][Oo][Nn] ([0-9]+\.[0-9]+).*$/\1/; T end; p; :end'`
+	if [[ ${bver%%.*} -lt 4 ]]; then
+		echo "There is wrong bash version; should be >= 4.3" >&2
+		exit 1
+	fi
+	if [[ ${bver%%.*} -eq 4 ]]; then
+		if [[ ${bver##*.} -lt 3 ]]; then
+			echo "There is wrong bash version; should be >= 4.3" >&2
+			exit 1
+		fi
+	fi
+	echo OK
+	echo -n "sleep... "
+	if ! which sleep >/dev/null 2>&1; then
+		echo "There is no sleep" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "date... "
+	if ! which date >/dev/null 2>&1; then
+		echo "There is no date" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "rm... "
+	if ! which rm >/dev/null 2>&1; then
+		echo "There is no rm" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "setsid... "
+	if ! which setsid >/dev/null 2>&1; then
+		echo "There is no setsid" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "logger... "
+	if ! which logger >/dev/null 2>&1; then
+		echo "There is no logger" >&2
+		exit 1
+	fi
+	echo OK
+	echo -n "stat... "
+	if ! which stat >/dev/null 2>&1; then
+		echo "There is no stat" >&2
+		exit 1
+	fi
+	echo OK
+}
+
+
 case "${1:-}" in
 -h|--help|help)
 	show_usage
@@ -553,6 +627,10 @@ case "${1:-}" in
 	;;
 -v|--version)
 	show_version
+	exit
+	;;
+--check-env)
+	check_env
 	exit
 	;;
 -SUPERVISE)
