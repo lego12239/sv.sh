@@ -10,6 +10,7 @@ SYNOPSIS
 echo SPEC | ./sv.sh TAG
 ./sv.sh -h|--help
 ./sv.sh -v|--version
+./sv.sh --check-env
 
 
 DESCRIPTION
@@ -38,6 +39,8 @@ the background.
 if SV_HOOK is not empty, then its value is treat as hook script name. This
 script is run on various events. See HOOK section below for details.
 
+Before a first use it may be helpful to run sv.sh with --check-env option.
+In this case, sv.sh checks existence of needed binaries and show the results.
 
 SPEC
 ====
@@ -135,14 +138,15 @@ usr2    - got SIGUSR2.
 
 Where, SVPID is sv.sh pid; FILENAME_PREV is a previous log file name.
 
-For usr1 and usr2 event, sv.sh checks an exit code of a hook. Exit code should
-be one of:
+For start,usr1 and usr2 events, sv.sh checks an exit code of a hook. Exit code
+should be one of:
 0 - ok
-1 - error, restart children
-2 - error, stop sv
+101 - error, restart children (or this child for a start hook)
+102 - error, stop sv
+OTHER - error, stop sv
 
 svstart can be used for cgroup/oom-killer configuration. svstop for some cleanup.
-start for some actions that should be executed on child start.
+start for some actions that should be executed after a child is started.
 stop can be used to terminate a child correctly if it can't be terminated gracefully
 by some signal (e.g. vanilla tcl without signal handling package) and also for
 some actions that sould be executed on child stop. logrotate can be used to
