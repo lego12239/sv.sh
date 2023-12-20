@@ -171,6 +171,14 @@ run_hook()
 	esac
 	HOOK_ECODE=$?
 	info_out "Hook ecode is $HOOK_ECODE"
+	case $HOOK_ECODE in
+	0|101)
+		;;
+	102|*)
+		info_out "Stop due to the hook ecode"
+		RUNNING=
+		;;
+	esac
 }
 
 save_cmds()
@@ -278,9 +286,6 @@ childs_start()
 				101)
 					childs_kill "$tag $cpid$NL"
 					#childs_cleanup ?
-					;;
-				102)
-					RUNNING=
 					;;
 				esac
 			fi
@@ -713,6 +718,9 @@ trap hdl_sigusr2 SIGUSR2
 trap _hdl_exit EXIT
 
 run_hook svstart
+if [[ "$HOOK_ECODE" -ne 0 ]]; then
+	err_exit "Stopping supervisor (hook exit code is $HOOK_ECODE)"
+fi
 
 RUNNING=1
 EVENT=
@@ -751,9 +759,6 @@ while [[ "$RUNNING" ]]; do
 		101)
 			childs_kill "$CPIDS"
 			#childs_cleanup ?
-			;;
-		102)
-			RUNNING=
 			;;
 		esac
 	fi
