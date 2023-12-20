@@ -6,4 +6,4 @@ export SV_PIDPATH=tmp
 export SV_HOOK=./ex-hook.sh
 
 rm tmp/*
-echo "run prg1 one ./prg.sh" | ./sv.sh env1
+echo "run prg1 one ./ex-prg.sh" | ./sv.sh env1
