@@ -732,10 +732,11 @@ while [[ "$RUNNING" ]]; do
 		case $HOOK_ECODE in
 		0)
 			;;
-		1)
+		101)
 			childs_kill "$CPIDS"
+			#childs_cleanup ?
 			;;
-		2)
+		102)
 			RUNNING=
 			;;
 		esac
