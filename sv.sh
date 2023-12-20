@@ -268,9 +268,21 @@ childs_start()
 				else
 					$cmd >>"$SV_LOGPATH/$SVTAG.$tag.log-$LOG_POSTFIX" 2>>"$SV_LOGPATH/$SVTAG.$tag.err.log-$LOG_POSTFIX" &
 				fi
-				CPIDS="${CPIDS}$tag $!$NL"
-				info_out "Child $tag is started: pid=$!"
-				run_hook start $tag $!
+				cpid=$!
+				CPIDS="${CPIDS}$tag $cpid$NL"
+				info_out "Child $tag is started: pid=$cpid"
+				run_hook start $tag $cpid
+				case $HOOK_ECODE in
+				0)
+					;;
+				101)
+					childs_kill "$tag $cpid$NL"
+					#childs_cleanup ?
+					;;
+				102)
+					RUNNING=
+					;;
+				esac
 			fi
 			;;
 		*)
@@ -709,6 +721,10 @@ CPIDS=""
 export CPIDS
 while [[ "$RUNNING" ]]; do
 	childs_start
+	# start hook can exit with 102 errcode
+	if [[ -z "$RUNNING" ]]; then
+		break
+	fi
 	wait -n
 	info_out "Got some signal"
 	if [[ "$RUNNING" ]]; then
